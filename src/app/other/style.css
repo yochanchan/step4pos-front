@@ -1,0 +1,12 @@
+@import "tailwindcss";
+.title {
+  @apply text-2xl font-bold m-0 p-5 text-white bg-blue-800;
+}
+
+.msg {
+  @apply text-lg m-5 text-gray-900 text-center;
+}
+
+:any-link {
+  @apply font-bold text-orange-600;
+}

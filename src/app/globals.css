@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background-start-rgb: 245, 245, 255;
+  --background-end-rgb: 245, 245, 255;
   --foreground: #171717;
 }
 
@@ -20,7 +21,44 @@
 }
 
 body {
-  background: var(--background);
+  background: linear-gradient(to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.title {
+  @apply text-2xl m-5 text-red-500;
+}
+
+h1.title {
+  @apply text-2xl font-bold m-0 p-5 text-white bg-blue-800 text-center;
+}
+
+.msg {
+  @apply text-lg m-5 text-gray-900;
+}
+
+p.msg {
+  @apply text-lg m-5 text-gray-900;
+}
+
+.input {
+  @apply p-1 border-solid border-2 border-gray-500 rounded-sm;
+}
+
+.btn {
+  @apply px-7 py-2 mx-2 bg-blue-500 text-white rounded-lg;
+}
+
+.any-link {
+  @apply text-lg m-5 text-sky-600;
+}
+
+ul, ol {
+  @apply text-xl m-5 font-bold list-disc;
+}
+li {
+  @apply mx-10 font-normal text-base text-gray-700;
 }
