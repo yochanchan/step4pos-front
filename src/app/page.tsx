@@ -8,9 +8,6 @@ type DealPayload = {
   amountpayload: number;
 }
 
-
-
-
 export default function Home() {
 
   type Nakami = {
@@ -18,8 +15,6 @@ export default function Home() {
     name: string;
     price: number;
   }
-
-
 
   const [name, setName] = useState<string>("-");
   const [price, setPrice] = useState<number>(0);
@@ -30,6 +25,10 @@ export default function Home() {
   const APIURL = process.env.NEXT_PUBLIC_API_ENDPOINT
 
   let pre_info = { name: "-", kazu: 0, price: 0, ammount: 0 };
+
+  // ★修正: モーダル表示と金額を管理するstateを追加
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [completedAmount, setCompletedAmount] = useState<number>(0);
 
   /* 読み込み部分 */
   function setCode() {
@@ -51,13 +50,11 @@ export default function Home() {
     return result;
   }
 
-
   /* 追加部分 */
   function toCart() {
     cartRef.current.push(Number(itemCode.current.value))
     console.log(cartRef)
   }
-
 
   function toList() {
     addNakami([
@@ -82,6 +79,17 @@ export default function Home() {
     );
   }
 
+  // ★修正: OKボタンでポップアップを閉じつつ、指定state/refをクリアする処理を追加
+  function handleModalOk() {
+    setName("-");                  // クリア
+    setPrice(0);                   // クリア
+    addNakami([]);                 // クリア
+    if (itemCode.current) {
+      itemCode.current.value = ""; // クリア
+    }
+    cartRef.current = [];          // クリア
+    setIsModalOpen(false);         // ポップアップを閉じる
+  }
 
   async function Deal() {
     const param = "/deal";
@@ -105,8 +113,13 @@ export default function Home() {
         body: JSON.stringify(payload)
       }
     );
-  }
 
+    // ★修正: 成功時にポップアップを開き、合計金額を表示用stateに保存
+    if (res.ok) {
+      setCompletedAmount(amount);
+      setIsModalOpen(true);
+    }
+  }
 
   return (
     <main>
@@ -131,7 +144,21 @@ export default function Home() {
           </div>
         </div>
       </div>
-    </main >
-  );
 
+      {/* ★修正: 購入完了ポップアップ（OKボタン付き） */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-lg bg-white p-6 shadow-lg max-w-sm w-[90%] text-center">
+            <p className="mb-4">購入処理が完了しました。合計金額：{completedAmount}円</p>
+            <button
+              className="btn"
+              onClick={handleModalOk}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
 }
