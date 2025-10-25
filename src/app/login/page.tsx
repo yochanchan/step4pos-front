@@ -79,7 +79,7 @@ type SignupErrorKey =
 
 type LoginErrorKey = 'email' | 'password';
 
-export default function LoginPage(): JSX.Element {
+export default function LoginPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [globalAlert, setGlobalAlert] = useState<AlertState | null>(null);
