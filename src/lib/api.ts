@@ -1,4 +1,4 @@
-﻿type HttpMethod = \"GET\" | \"POST\" | \"PUT\" | \"PATCH\" | \"DELETE\";
+﻿type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 type RequestOptions = {
   method?: HttpMethod;
@@ -65,7 +65,7 @@ function resolveUrl(path: string): string {
     throw new Error("NEXT_PUBLIC_API_ENDPOINT is not configured");
   }
   const trimmedPath = path.startsWith("/") ? path.slice(1) : path;
-  return ${API_BASE}/;
+  return `${API_BASE}/${trimmedPath}`;
 }
 
 function ensureHeaders(headers: HeadersInit | undefined): Headers {
@@ -92,7 +92,7 @@ function handleErrorResponse(response: Response, payload: ApiErrorPayload | unde
   throw new ApiError(
     response.status,
     "unknown_error",
-    Request failed with status ,
+    `Request failed with status ${response.status}`,
   );
 }
 
@@ -116,7 +116,7 @@ async function apiFetch<T>(
   }
 
   if (accessToken && !skipAuth) {
-    requestHeaders.set("Authorization", Bearer );
+    requestHeaders.set("Authorization", `Bearer ${accessToken}`);
   }
 
   const response = await fetch(resolveUrl(path), init);
@@ -131,7 +131,7 @@ async function apiFetch<T>(
     let payload: ApiErrorPayload | undefined;
     try {
       payload = await parseResponse<ApiErrorPayload>(response);
-    } catch (error) {
+    } catch {
       handleErrorResponse(response, undefined);
     }
     handleErrorResponse(response, payload);
