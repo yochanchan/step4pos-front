@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import {
   ApiError,
@@ -80,6 +81,7 @@ type SignupErrorKey =
 type LoginErrorKey = 'email' | 'password';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [globalAlert, setGlobalAlert] = useState<AlertState | null>(null);
@@ -115,6 +117,12 @@ export default function LoginPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!initializing && currentUser) {
+      router.replace('/');
+    }
+  }, [currentUser, initializing, router]);
+
   const handleLogin = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoginAlert(null);
@@ -148,6 +156,7 @@ export default function LoginPage() {
         type: 'success',
         message: 'ログインしました。',
       });
+      router.replace('/');
     } catch (error) {
       if (error instanceof ApiError) {
         setLoginAlert({ type: 'error', message: error.message });
@@ -160,7 +169,7 @@ export default function LoginPage() {
     } finally {
       setLoginPending(false);
     }
-  }, []);
+  }, [router]);
 
   const handleSignup = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -207,6 +216,7 @@ export default function LoginPage() {
         type: 'success',
         message: 'アカウントを作成しました。',
       });
+      router.replace('/');
     } catch (error) {
       if (error instanceof ApiError) {
         setSignupAlert({ type: 'error', message: error.message });
@@ -219,7 +229,7 @@ export default function LoginPage() {
     } finally {
       setSignupPending(false);
     }
-  }, []);
+  }, [router]);
 
   const handleLogout = useCallback(async () => {
     setGlobalAlert(null);

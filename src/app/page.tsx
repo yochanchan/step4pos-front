@@ -1,7 +1,8 @@
-'use client'
+﻿'use client'
 
-import { useRef, useState } from 'react';
-import { preconnect } from 'react-dom';
+import { useCallback, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { logout, setAccessToken } from '@/lib/api';
 
 type DealPayload = {
   cartpayload: number[];
@@ -9,6 +10,9 @@ type DealPayload = {
 }
 
 export default function Home() {
+  const router = useRouter();
+  const [logoutPending, setLogoutPending] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   type Nakami = {
     code: number;
@@ -29,6 +33,23 @@ export default function Home() {
   // ★修正: モーダル表示と金額を管理するstateを追加
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [completedAmount, setCompletedAmount] = useState<number>(0);
+  const handleLogout = useCallback(async () => {
+    if (logoutPending) {
+      return;
+    }
+    setLogoutError(null);
+    setLogoutPending(true);
+    try {
+      await logout();
+      setAccessToken(null);
+      router.push('/login');
+    } catch {
+      setLogoutError('ログアウトに失敗しました。もう一度お試しください。');
+    } finally {
+      setLogoutPending(false);
+    }
+  }, [logoutPending, router]);
+
 
   /* 読み込み部分 */
   function setCode() {
@@ -122,7 +143,19 @@ export default function Home() {
   }
 
   return (
-    <main>
+    <main>      <div class="flex items-center justify-end gap-3 px-4 py-3">
+        {logoutError && (
+          <p class="text-sm text-rose-600">{logoutError}</p>
+        )}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={handleLogout}
+          disabled={logoutPending}
+        >
+          {logoutPending ? 'ログアウト中...' : 'ログアウト'}
+        </button>
+      </div>
       <div className="w-5/8 bg-gray-300">
         <div className="grid grid-cols-2 gap-2">
           <div className="m-2 p-4 border-solid bg-blue-100">
