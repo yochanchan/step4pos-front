@@ -121,7 +121,8 @@ export default function LoginPage() {
     setLoginErrors({});
     setGlobalAlert(null);
 
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const raw = {
       email: String(formData.get('loginEmail') ?? ''),
       password: String(formData.get('loginPassword') ?? ''),
@@ -142,7 +143,7 @@ export default function LoginPage() {
       const response = await login(parsed.data);
       setAccessToken(response.access_token);
       setCurrentUser(response.user);
-      event.currentTarget.reset();
+      form.reset();
       setLoginAlert({
         type: 'success',
         message: 'ログインしました。',
@@ -167,7 +168,8 @@ export default function LoginPage() {
     setSignupErrors({});
     setGlobalAlert(null);
 
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const raw = {
       displayName: String(formData.get('signupDisplayName') ?? ''),
       email: String(formData.get('signupEmail') ?? ''),
@@ -200,7 +202,7 @@ export default function LoginPage() {
       });
       setAccessToken(response.access_token);
       setCurrentUser(response.user);
-      event.currentTarget.reset();
+      form.reset();
       setSignupAlert({
         type: 'success',
         message: 'アカウントを作成しました。',
@@ -510,6 +512,11 @@ export default function LoginPage() {
     </main>
   );
 }
+
+
+
+
+
 
 
 
