@@ -1,38 +1,89 @@
-﻿'use client'
+'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { logout, setAccessToken } from '@/lib/api';
 
-type DealPayload = {
-  cartpayload: number[];
-  amountpayload: number;
-}
+type CartItem = {
+  name: string;
+  price: number;
+};
 
 export default function Home() {
   const router = useRouter();
-  const [logoutPending, setLogoutPending] = useState(false);
+  const codeInput = useRef<HTMLInputElement>(null);
+  const [lookup, setLookup] = useState<CartItem | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [checkoutTotal, setCheckoutTotal] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [logoutPending, setLogoutPending] = useState(false);
+  const apiBase = process.env.NEXT_PUBLIC_API_ENDPOINT ?? '';
 
-  type Nakami = {
-    code: number;
-    name: string;
-    price: number;
-  }
+  const fetchItem = useCallback(async () => {
+    setError(null);
+    const code = codeInput.current?.value.trim();
+    if (!code) {
+      return;
+    }
+    try {
+      const response = await fetch(`${apiBase}/item?prd_code=${encodeURIComponent(code)}`, {
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        throw new Error('lookup_failed');
+      }
+      const data = await response.json();
+      setLookup({ name: data.name, price: data.price });
+    } catch {
+      setLookup(null);
+      setError('Item could not be found.');
+    }
+  }, [apiBase]);
 
-  const [name, setName] = useState<string>("-");
-  const [price, setPrice] = useState<number>(0);
-  const [nakami, addNakami] = useState<Nakami[]>([]);
-  const itemCode = useRef<HTMLInputElement>(null!);
-  const cartRef = useRef<number[]>([])
+  const addToCart = useCallback(() => {
+    if (!lookup) {
+      return;
+    }
+    setCart((current) => [...current, lookup]);
+    setLookup(null);
+    if (codeInput.current) {
+      codeInput.current.value = '';
+    }
+  }, [lookup]);
 
-  const APIURL = process.env.NEXT_PUBLIC_API_ENDPOINT
+  const totalAmount = useMemo(
+    () => cart.reduce((sum, item) => sum + item.price, 0),
+    [cart],
+  );
 
-  let pre_info = { name: "-", kazu: 0, price: 0, ammount: 0 };
+  const handleDeal = useCallback(async () => {
+    if (!cart.length) {
+      return;
+    }
+    setError(null);
+    const payload = {
+      cartpayload: cart.map((_, idx) => idx + 1),
+      amountpayload: totalAmount,
+    };
+    try {
+      const response = await fetch(`${apiBase}/deal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        throw new Error('deal_failed');
+      }
+      setCheckoutTotal(totalAmount);
+      setModalOpen(true);
+      setCart([]);
+    } catch {
+      setError('Purchase could not be completed.');
+    }
+  }, [apiBase, cart, totalAmount]);
 
-  // ★修正: モーダル表示と金額を管理するstateを追加
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [completedAmount, setCompletedAmount] = useState<number>(0);
   const handleLogout = useCallback(async () => {
     if (logoutPending) {
       return;
@@ -42,151 +93,109 @@ export default function Home() {
     try {
       await logout();
       setAccessToken(null);
-      router.push('/login');
+      router.replace('/login');
     } catch {
-      setLogoutError('ログアウトに失敗しました。もう一度お試しください。');
+      setLogoutError('Failed to log out. Please try again.');
     } finally {
       setLogoutPending(false);
     }
   }, [logoutPending, router]);
 
-
-  /* 読み込み部分 */
-  function setCode() {
-    fetchCode().then(res => {
-      setName(res.name)
-      setPrice(res.price)
-    });
-  }
-
-  async function fetchCode() {
-    const param = "/item?prd_code=";
-    const url = APIURL + param
-    const res = await fetch(
-      url + itemCode.current.value,
-      { cache: 'no-store' }
-    );
-    const result = await res.json();
-    pre_info = result;
-    return result;
-  }
-
-  /* 追加部分 */
-  function toCart() {
-    cartRef.current.push(Number(itemCode.current.value))
-    console.log(cartRef)
-  }
-
-  function toList() {
-    addNakami([
-      ...nakami,
-      { code: 1, name: name, price: price }
-    ]);
-    console.log(nakami)
-  }
-
-  function Cart() {
-
-    return (
-      <div>
-        <ul>
-          {nakami.map((i, k) => {
-            return (<li className="text-left" key={k}>{i.name}　x1　{i.price}円　{i.price}円</li>)
-          }
-          )}
-          <li></li>
-        </ul>
-      </div>
-    );
-  }
-
-  // ★修正: OKボタンでポップアップを閉じつつ、指定state/refをクリアする処理を追加
-  function handleModalOk() {
-    setName("-");                  // クリア
-    setPrice(0);                   // クリア
-    addNakami([]);                 // クリア
-    if (itemCode.current) {
-      itemCode.current.value = ""; // クリア
+  const closeModal = useCallback(() => {
+    setModalOpen(false);
+    if (codeInput.current) {
+      codeInput.current.value = '';
     }
-    cartRef.current = [];          // クリア
-    setIsModalOpen(false);         // ポップアップを閉じる
-  }
-
-  async function Deal() {
-    const param = "/deal";
-    const url = APIURL + param;
-    let amount = 0;
-    console.log(nakami.length)
-
-    for (let i = 0; i < nakami.length; i++) {
-      amount = amount + nakami[i].price;
-    }
-
-    const payload: DealPayload = {
-      cartpayload: cartRef.current,
-      amountpayload: amount
-    };
-    const res = await fetch(
-      url,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }
-    );
-
-    // ★修正: 成功時にポップアップを開き、合計金額を表示用stateに保存
-    if (res.ok) {
-      setCompletedAmount(amount);
-      setIsModalOpen(true);
-    }
-  }
+  }, []);
 
   return (
-    <main>      <div class="flex items-center justify-end gap-3 px-4 py-3">
-        {logoutError && (
-          <p class="text-sm text-rose-600">{logoutError}</p>
-        )}
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={handleLogout}
-          disabled={logoutPending}
-        >
-          {logoutPending ? 'ログアウト中...' : 'ログアウト'}
-        </button>
-      </div>
-      <div className="w-5/8 bg-gray-300">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="m-2 p-4 border-solid bg-blue-100">
-            <form>
-              <input className="input"
-                type="number"
-                ref={itemCode}
-              />
-            </form>
-            <button className="btn my-3" onClick={setCode}>商品コード 読み込み</button>
-            <div className="my-3">{name}</div>
-            <div>{price}</div>
-            <button className="btn my-3" onClick={() => { toCart(); toList(); }}>追加</button>
-          </div>
-          <div className="m-2 p-4 bg-amber-100">
-            <p className="msg text-center">購入リスト</p>
-            <Cart />
-            <button className="btn" onClick={() => { Deal() }}>購入</button>
-          </div>
+    <main className="space-y-6 bg-gray-50 pb-10">
+      <header className="flex flex-wrap items-center justify-between gap-3 bg-white px-6 py-4 shadow-sm">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-800">Point-of-Sale Demo</h1>
+          <p className="text-sm text-slate-500">Scan items, build a cart, and record deals.</p>
         </div>
-      </div>
+        <div className="flex items-center gap-3">
+          {logoutError && <p className="text-sm text-rose-600">{logoutError}</p>}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleLogout}
+            disabled={logoutPending}
+          >
+            {logoutPending ? 'Logging out…' : 'Log out'}
+          </button>
+        </div>
+      </header>
 
-      {/* ★修正: 購入完了ポップアップ（OKボタン付き） */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-lg bg-white p-6 shadow-lg max-w-sm w-[90%] text-center">
-            <p className="mb-4">購入処理が完了しました。合計金額：{completedAmount}円</p>
+      <section className="mx-auto grid max-w-5xl gap-6 px-6 lg:grid-cols-[1fr,1fr]">
+        <div className="rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-800">Scan item</h2>
+          <p className="text-sm text-slate-500">Enter an item code and load price information.</p>
+          <div className="mt-4 flex gap-3">
+            <input
+              ref={codeInput}
+              type="number"
+              className="input w-full"
+              placeholder="Enter item code"
+            />
+            <button className="btn btn-primary" onClick={fetchItem}>
+              Load
+            </button>
+          </div>
+
+          {lookup && (
+            <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-700">
+              <p>{lookup.name}</p>
+              <p className="font-semibold">¥{lookup.price.toLocaleString()}</p>
+            </div>
+          )}
+
+          <div className="mt-4 flex gap-3">
             <button
-              className="btn"
-              onClick={handleModalOk}
+              className="btn btn-secondary w-full disabled:opacity-50"
+              onClick={addToCart}
+              disabled={!lookup}
             >
+              Add to cart
+            </button>
+          </div>
+          {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
+        </div>
+
+        <div className="rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-800">Cart</h2>
+          <ul className="mt-4 space-y-2 text-sm text-slate-700">
+            {cart.map((item, index) => (
+              <li key={index} className="flex justify-between rounded bg-slate-50 px-3 py-2">
+                <span>{item.name}</span>
+                <span>¥{item.price.toLocaleString()}</span>
+              </li>
+            ))}
+            {!cart.length && <li className="text-slate-400">Cart is empty.</li>}
+          </ul>
+          <div className="mt-4 flex items-center justify-between text-sm font-semibold text-slate-800">
+            <span>Total</span>
+            <span>¥{totalAmount.toLocaleString()}</span>
+          </div>
+          <button
+            className="btn btn-primary mt-4 w-full disabled:opacity-50"
+            onClick={handleDeal}
+            disabled={!cart.length}
+          >
+            Complete purchase
+          </button>
+        </div>
+      </section>
+
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[90%] max-w-sm rounded-xl bg-white p-6 text-center shadow-lg">
+            <p className="text-sm text-slate-600">Purchase completed.</p>
+            <p className="mt-2 text-lg font-semibold text-slate-900">
+              Total: ¥{checkoutTotal.toLocaleString()}
+            </p>
+            <button className="btn btn-primary mt-4 w-full" onClick={closeModal}>
               OK
             </button>
           </div>
