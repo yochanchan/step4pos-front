@@ -27,7 +27,7 @@ const loginSchema = z.object({
 });
 
 const passwordHint =
-  '英大文字・英小文字・数字・記号をそれぞれ1文字以上含めてください。';
+  'パスワードは半角英数字と記号のみ使用できます。';
 
 const signupSchema = z
   .object({
@@ -48,11 +48,8 @@ const signupSchema = z
       .email('有効なメールアドレスを入力してください。'),
     password: z
       .string()
-      .min(12, 'パスワードは12文字以上で入力してください。')
-      .regex(/[A-Z]/, passwordHint)
-      .regex(/[a-z]/, passwordHint)
-      .regex(/[0-9]/, passwordHint)
-      .regex(/[^A-Za-z0-9]/, passwordHint),
+      .min(6, 'パスワードは6文字以上で入力してください。')
+      .regex(/^[\x21-\x7E]+$/, passwordHint),
     passwordConfirm: z.string().min(1, '確認用パスワードを入力してください。'),
     agree: z.literal(true, {
       errorMap: () => ({
@@ -444,7 +441,7 @@ export default function LoginPage(): JSX.Element {
                   aria-describedby={signupErrors.password ? 'signup-password-error' : undefined}
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  12文字以上で、英大文字・英小文字・数字・記号を含めてください。
+                  6文字以上の半角英数字・記号で入力してください。
                 </p>
                 {signupErrors.password && (
                   <p id="signup-password-error" className="mt-1 text-sm text-rose-600">
@@ -513,3 +510,6 @@ export default function LoginPage(): JSX.Element {
     </main>
   );
 }
+
+
+
