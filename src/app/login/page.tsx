@@ -13,9 +13,17 @@ import {
   setAccessToken,
   signup,
   type User,
+  type SignupPayload,
 } from "@/lib/api";
 
 type Alert = { type: "success" | "error"; message: string } | null;
+
+type SignupFormFields = {
+  displayName: string;
+  email: string;
+  password: string;
+  passwordConfirm: string;
+};
 
 const loginSchema = z.object({
   email: z.string().trim().min(1, "メールアドレスを入力してください").email("正しい形式で入力してください"),
@@ -54,7 +62,6 @@ export default function LoginPage() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
-  const [globalAlert, setGlobalAlert] = useState<Alert>(null);
   const [loginAlert, setLoginAlert] = useState<Alert>(null);
   const [signupAlert, setSignupAlert] = useState<Alert>(null);
   const [loginPending, setLoginPending] = useState(false);
@@ -114,24 +121,27 @@ export default function LoginPage() {
     setSignupAlert(null);
     setSignupPending(true);
     const form = new FormData(e.currentTarget);
-    const data = {
-      display_name: String(form.get("displayName") || "").trim() || undefined,
-      email: String(form.get("signupEmail") || ""),
-      password: String(form.get("signupPassword") || ""),
-      passwordConfirm: String(form.get("signupPasswordConfirm") || ""),
-    } as any;
-    const parsed = signupSchema.safeParse(data);
+    const raw: SignupFormFields = {
+      displayName: String(form.get("displayName") ?? ""),
+      email: String(form.get("signupEmail") ?? ""),
+      password: String(form.get("signupPassword") ?? ""),
+      passwordConfirm: String(form.get("signupPasswordConfirm") ?? ""),
+    };
+    const parsed = signupSchema.safeParse(raw);
     if (!parsed.success) {
       setSignupAlert({ type: "error", message: "入力内容をご確認ください" });
       setSignupPending(false);
       return;
     }
     try {
-      const res = await signup({
+      const payload: SignupPayload = {
         email: parsed.data.email,
         password: parsed.data.password,
-        display_name: parsed.data.displayName,
-      } as any);
+      };
+      if (parsed.data.displayName) {
+        payload.display_name = parsed.data.displayName;
+      }
+      const res = await signup(payload);
       setAccessToken(res.access_token);
       router.replace("/");
     } catch (err) {
@@ -233,7 +243,6 @@ export default function LoginPage() {
             {signupPending ? "送信中..." : "アカウントを作成"}
           </button>
         </form>
-        {globalAlert && <p className="mt-4 text-sm">{globalAlert.message}</p>}
       </section>
     </main>
   );
