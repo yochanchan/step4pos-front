@@ -112,8 +112,8 @@ export default function Home() {
     <main className="space-y-6 bg-gray-50 pb-10">
       <header className="flex flex-wrap items-center justify-between gap-3 bg-white px-6 py-4 shadow-sm">
         <div>
-          <h1 className="text-xl font-semibold text-slate-800">Point-of-Sale Demo</h1>
-          <p className="text-sm text-slate-500">Scan items, build a cart, and record deals.</p>
+          <h1 className="text-xl font-semibold text-slate-800">ようちゃんPOSアプリ</h1>
+          <p className="text-sm text-slate-500">Codexにもトライしました</p>
         </div>
         <div className="flex items-center gap-3">
           {logoutError && <p className="text-sm text-rose-600">{logoutError}</p>}
@@ -130,8 +130,8 @@ export default function Home() {
 
       <section className="mx-auto grid max-w-5xl gap-6 px-6 lg:grid-cols-[1fr,1fr]">
         <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-800">Scan item</h2>
-          <p className="text-sm text-slate-500">Enter an item code and load price information.</p>
+          <h2 className="text-lg font-semibold text-slate-800">商品番号指定</h2>
+          <p className="text-sm text-slate-500">1~4のいずれかを入力して、青いボタンを押してください</p>
           <div className="mt-4 flex gap-3">
             <input
               ref={codeInput}
@@ -140,7 +140,7 @@ export default function Home() {
               placeholder="Enter item code"
             />
             <button className="btn btn-primary" onClick={fetchItem}>
-              Load
+              商品コード読み込み
             </button>
           </div>
 
@@ -157,14 +157,14 @@ export default function Home() {
               onClick={addToCart}
               disabled={!lookup}
             >
-              Add to cart
+              追加
             </button>
           </div>
           {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
         </div>
 
         <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-800">Cart</h2>
+          <h2 className="text-lg font-semibold text-slate-800">購入リスト</h2>
           <ul className="mt-4 space-y-2 text-sm text-slate-700">
             {cart.map((item, index) => (
               <li key={index} className="flex justify-between rounded bg-slate-50 px-3 py-2">
@@ -172,7 +172,7 @@ export default function Home() {
                 <span>¥{item.price.toLocaleString()}</span>
               </li>
             ))}
-            {!cart.length && <li className="text-slate-400">Cart is empty.</li>}
+            {!cart.length && <li className="text-slate-400">まだ何も読み込まれていません</li>}
           </ul>
           <div className="mt-4 flex items-center justify-between text-sm font-semibold text-slate-800">
             <span>Total</span>
@@ -183,7 +183,7 @@ export default function Home() {
             onClick={handleDeal}
             disabled={!cart.length}
           >
-            Complete purchase
+            購入
           </button>
         </div>
       </section>
@@ -191,9 +191,9 @@ export default function Home() {
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-[90%] max-w-sm rounded-xl bg-white p-6 text-center shadow-lg">
-            <p className="text-sm text-slate-600">Purchase completed.</p>
+            <p className="text-sm text-slate-600">購入できました！</p>
             <p className="mt-2 text-lg font-semibold text-slate-900">
-              Total: ¥{checkoutTotal.toLocaleString()}
+              合計金額: ¥{checkoutTotal.toLocaleString()}
             </p>
             <button className="btn btn-primary mt-4 w-full" onClick={closeModal}>
               OK

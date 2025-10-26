@@ -57,8 +57,37 @@ export class ApiError extends Error {
 const rawEndpoint = process.env.NEXT_PUBLIC_API_ENDPOINT?.trim() ?? "";
 const API_BASE = rawEndpoint.replace(/\/+$/, "");
 
+const SESSION_FLAG_KEY = "pos_session_active";
+
 let accessToken: string | null = null;
 let refreshPromise: Promise<TokenResponse | null> | null = null;
+
+function markSession(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(SESSION_FLAG_KEY, "1");
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function clearSessionFlag(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(SESSION_FLAG_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function hasSessionFlag(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(SESSION_FLAG_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 function resolveUrl(path: string): string {
   if (!API_BASE) {
@@ -134,6 +163,9 @@ async function apiFetch<T>(
     } catch {
       handleErrorResponse(response, undefined);
     }
+    if (response.status === 401 && !skipAuth) {
+      clearSessionFlag();
+    }
     handleErrorResponse(response, payload);
   }
 
@@ -153,13 +185,16 @@ async function refreshTokenInternal(): Promise<TokenResponse | null> {
         });
         if (!response.ok) {
           accessToken = null;
+          clearSessionFlag();
           return null;
         }
         const data = await parseResponse<TokenResponse>(response);
         accessToken = data.access_token;
+        markSession();
         return data;
       } catch {
         accessToken = null;
+        clearSessionFlag();
         return null;
       } finally {
         refreshPromise = null;
@@ -176,6 +211,7 @@ export async function login(payload: LoginPayload): Promise<TokenResponse> {
     skipAuth: true,
   });
   accessToken = data.access_token;
+  markSession();
   return data;
 }
 
@@ -186,6 +222,7 @@ export async function signup(payload: SignupPayload): Promise<TokenResponse> {
     skipAuth: true,
   });
   accessToken = data.access_token;
+  markSession();
   return data;
 }
 
@@ -205,6 +242,7 @@ export async function logout(): Promise<void> {
     });
   } finally {
     accessToken = null;
+    clearSessionFlag();
   }
 }
 
