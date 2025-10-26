@@ -1,9 +1,8 @@
-
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { clearSessionFlag, getMe, hasSessionFlag, logout, setAccessToken } from "@/lib/api";
+import { clearSessionFlag, getMe, logout, setAccessToken } from "@/lib/api";
 
 type CartItem = {
   name: string;
@@ -29,10 +28,6 @@ export default function PosPage() {
       if (typeof window === "undefined") {
         return;
       }
-      if (!hasSessionFlag()) {
-        router.replace("/login");
-        return;
-      }
       try {
         await getMe();
         if (active) {
@@ -48,6 +43,7 @@ export default function PosPage() {
       active = false;
     };
   }, [router]);
+
 
   const fetchItem = useCallback(async () => {
     setError(null);
@@ -196,8 +192,7 @@ export default function PosPage() {
             ))}
             {!cart.length && <li className="text-slate-400">まだ何も読み込まれていません</li>}
           </ul>
-          <div className="mt-4    
-flex items-center justify-between text-sm font-semibold text-slate-800">
+          <div className="mt-4 flex items-center justify-between text-sm font-semibold text-slate-800">
             <span>合計</span>
             <span>¥{totalAmount.toLocaleString()}</span>
           </div>
