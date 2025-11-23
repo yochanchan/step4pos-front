@@ -65,6 +65,7 @@ const signupSchema = z
   });
 
 const apiBase = process.env.NEXT_PUBLIC_API_ENDPOINT?.replace(/\/+$/, "") ?? "";
+const PRODUCT_CODE_STORAGE_KEY = "posProductCode";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -75,6 +76,7 @@ export default function LoginPage() {
   const [loginPending, setLoginPending] = useState(false);
   const [signupPending, setSignupPending] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
+  const [productCode, setProductCode] = useState("");
 
   useEffect(() => {
     if (!hasSessionFlag()) {
@@ -98,6 +100,25 @@ export default function LoginPage() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(PRODUCT_CODE_STORAGE_KEY) ?? "";
+    if (stored) {
+      setProductCode(stored.replace(/\D+/g, ""));
+    }
+  }, []);
+
+  const handleProductCodeChange = useCallback((value: string) => {
+    const numeric = value.replace(/\D+/g, "");
+    setProductCode(numeric);
+    if (typeof window === "undefined") return;
+    if (numeric) {
+      window.localStorage.setItem(PRODUCT_CODE_STORAGE_KEY, numeric);
+    } else {
+      window.localStorage.removeItem(PRODUCT_CODE_STORAGE_KEY);
+    }
   }, []);
 
   const handleLogin = useCallback(
@@ -225,6 +246,22 @@ export default function LoginPage() {
               パスワード
             </label>
             <input id="password" name="password" type="password" className="input w-full" placeholder="********" />
+          </div>
+          <div>
+            <label htmlFor="productCode" className="form-label">
+              商品コード（任意）
+            </label>
+            <input
+              id="productCode"
+              name="productCode"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className="input w-full"
+              placeholder="123456"
+              value={productCode}
+              onChange={(event) => handleProductCodeChange(event.target.value)}
+            />
+            <p className="mt-1 text-xs text-slate-500">数値のみ入力できます。空欄のままでもログイン可能です。</p>
           </div>
           {renderAlert(loginAlert)}
           <button type="submit" className="btn btn-secondary w-full justify-center" disabled={loginPending}>

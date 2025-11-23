@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { clearSessionFlag, getMe, logout, setAccessToken } from "@/lib/api";
 
@@ -8,6 +8,8 @@ type CartItem = {
   name: string;
   price: number;
 };
+
+const PRODUCT_CODE_STORAGE_KEY = "posProductCode";
 
 export default function PosPage() {
   const router = useRouter();
@@ -21,6 +23,15 @@ export default function PosPage() {
   const [logoutPending, setLogoutPending] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const apiBase = process.env.NEXT_PUBLIC_API_ENDPOINT ?? "";
+
+  const syncProductCode = useCallback((value: string) => {
+    if (typeof window === "undefined") return;
+    if (value) {
+      window.localStorage.setItem(PRODUCT_CODE_STORAGE_KEY, value);
+    } else {
+      window.localStorage.removeItem(PRODUCT_CODE_STORAGE_KEY);
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -44,6 +55,19 @@ export default function PosPage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    if (initializing) return;
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(PRODUCT_CODE_STORAGE_KEY) ?? "";
+    if (codeInput.current) {
+      codeInput.current.value = stored;
+      codeInput.current.focus();
+      if (stored) {
+        codeInput.current.select();
+      }
+    }
+  }, [initializing]);
+
 
   const fetchItem = useCallback(async () => {
     setError(null);
@@ -66,6 +90,15 @@ export default function PosPage() {
     }
   }, [apiBase]);
 
+  const handleCodeInputChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const numeric = event.target.value.replace(/\D+/g, "");
+      event.target.value = numeric;
+      syncProductCode(numeric);
+    },
+    [syncProductCode],
+  );
+
   const addToCart = useCallback(() => {
     if (!lookup) return;
     setCart((current) => [...current, lookup]);
@@ -73,7 +106,8 @@ export default function PosPage() {
     if (codeInput.current) {
       codeInput.current.value = "";
     }
-  }, [lookup]);
+    syncProductCode("");
+  }, [lookup, syncProductCode]);
 
   const totalAmount = useMemo(
     () => cart.reduce((sum, item) => sum + item.price, 0),
@@ -125,7 +159,8 @@ export default function PosPage() {
     if (codeInput.current) {
       codeInput.current.value = "";
     }
-  }, []);
+    syncProductCode("");
+  }, [syncProductCode]);
 
   if (initializing) {
     return (
@@ -160,7 +195,15 @@ export default function PosPage() {
           <h2 className="text-lg font-semibold text-slate-800">商品番号指定</h2>
           <p className="text-sm text-slate-500">1~4のいずれかを入力して、青いボタンを押してください</p>
           <div className="mt-4 flex gap-3">
-            <input ref={codeInput} type="text" className="input w-full" placeholder="商品コード" />
+            <input
+              ref={codeInput}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className="input w-full"
+              placeholder="商品コード"
+              onChange={handleCodeInputChange}
+            />
             <button className="btn btn-primary" onClick={fetchItem}>
               商品コード読み込み
             </button>
